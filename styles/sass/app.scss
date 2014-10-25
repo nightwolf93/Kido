@@ -1,0 +1,19 @@
+@import 'styles/sass/animations.scss';
+
+body {
+  background-color: black;
+}
+
+#game-container {
+  text-align: center;
+
+  div[id^="scene-"] {
+    display: none;
+    position: absolute;
+    top: 0px; left: 0px;
+  }
+}
+
+#game {
+  background-color: white;
+}
