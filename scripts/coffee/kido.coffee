@@ -2,23 +2,30 @@ class KidoEngine
   constructor: (canvasId) ->
     @canvas = document.getElementById canvasId
     @ctx = @canvas.getContext '2d'
+    @gametime = 0
     _this = @
-    Kido.SceneManager.setScene new Kido.Scenes.Login()
+    Kido.SceneManager.setScene new Kido.Scenes.InGame()
     setInterval(->
       _this.gameloop()
     1000 / 60)
 
   gameloop: ->
+    @canvas.width = @canvas.width
     @update()
     @render()
 
   update: ->
-    #todo
+    Kido.SceneManager.update @gametime
+    @gametime++
 
   render: ->
-    #todo
+    Kido.SceneManager.render @
 
-window.Kido = {
-  KidoEngine: KidoEngine,
-  Scenes: {}
-}
+if(window.Kido == undefined)
+  window.Kido = {
+    KidoEngine: KidoEngine,
+    Scenes: {}
+  }
+else
+  Kido.KidoEngine = KidoEngine
+  if Kido.Scenes == undefined then Kido.Scenes = {}
