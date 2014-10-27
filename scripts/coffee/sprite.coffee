@@ -3,6 +3,7 @@ class GraphicObject
 
 class Sprite extends GraphicObject
   constructor: (@asset) ->
+    @scale = 1
     super new Kido.Vector2f(0, 0), new Kido.Size(@asset.size.width, @asset.size.height), true
 
   @fromStorage: (alias) ->
@@ -11,7 +12,7 @@ class Sprite extends GraphicObject
   update: (gametime) ->
 
   render: (g) ->
-    
+    g.ctx.drawImage(@asset.texture, @pos.x, @pos.y)
 
 class Container extends GraphicObject
   constructor: (@position) ->

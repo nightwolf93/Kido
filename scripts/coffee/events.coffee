@@ -3,7 +3,8 @@ class EventEmitter
   @when: (alias, callback) ->
     @emitters[alias] = callback
   @dispatch: (alias) ->
-    @emitters[alias]()
+    if @emitters[alias] != undefined
+      @emitters[alias]()
 
 if(window.Kido == undefined) then window.Kido = {}
 Kido.EventEmitter = EventEmitter

@@ -86,7 +86,9 @@
     };
 
     EventEmitter.dispatch = function(alias) {
-      return this.emitters[alias]();
+      if (this.emitters[alias] !== void 0) {
+        return this.emitters[alias]();
+      }
     };
 
     return EventEmitter;
@@ -271,6 +273,7 @@
 
     function Sprite(asset) {
       this.asset = asset;
+      this.scale = 1;
       Sprite.__super__.constructor.call(this, new Kido.Vector2f(0, 0), new Kido.Size(this.asset.size.width, this.asset.size.height), true);
     }
 
@@ -280,7 +283,9 @@
 
     Sprite.prototype.update = function(gametime) {};
 
-    Sprite.prototype.render = function(g) {};
+    Sprite.prototype.render = function(g) {
+      return g.ctx.drawImage(this.asset.texture, this.pos.x, this.pos.y);
+    };
 
     return Sprite;
 
