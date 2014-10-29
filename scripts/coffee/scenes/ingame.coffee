@@ -4,16 +4,22 @@ class InGame extends Kido.Scene
 
   enter: ->
     Kido.AssetStorage.loadManifest([
-        { alias: 'kido', path: 'assets/kido.png' }
+        { alias: 'kido', path: 'assets/kido.png' },
+        { alias: 'perso1', path: 'assets/spritesheet1.png' }
       ])
     super
 
   initialized: ->
-    @kido = Kido.Sprite.fromStorage 'kido'
-    @stage.addChild @kido
+    spritesheet = Kido.SpriteSheet.fromStorage('perso1', new Kido.Size(50, 50), 6, 13)
+    console.log spritesheet
 
   update: (gametime) ->
+
     super gametime
+
+  render: (g) ->
+
+    super g
 
 if(window.Kido == undefined) then window.Kido = {}
 Kido.Scenes.InGame = InGame

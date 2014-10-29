@@ -1,8 +1,8 @@
 class KidoEngine
   constructor: (canvasId) ->
-    @canvas = document.getElementById canvasId
-    @ctx = @canvas.getContext '2d'
+    @canvas = new Kido.Canvas(@, document.getElementById(canvasId))
     @gametime = 0
+
     _this = @
     Kido.SceneManager.setScene new Kido.Scenes.InGame()
     setInterval(->
@@ -10,7 +10,8 @@ class KidoEngine
     1000 / 60)
 
   gameloop: ->
-    @canvas.width = @canvas.width
+    @canvas.canvas.width = @canvas.canvas.width
+
     @update()
     @render()
 
@@ -21,11 +22,24 @@ class KidoEngine
   render: ->
     Kido.SceneManager.render @
 
+  setStyle: (key, value) ->
+    switch key
+      when 'bgcolor'
+        @style_bgColor = value
+
+class Canvas
+  constructor: (@engine, @canvas) ->
+    @ctx = @canvas.getContext '2d'
+    @bgColor = '#ffffff'
+
+
 if(window.Kido == undefined)
   window.Kido = {
     KidoEngine: KidoEngine,
+    Canvas: Canvas
     Scenes: {}
   }
 else
   Kido.KidoEngine = KidoEngine
+  Kido.Canvas = Canvas
   if Kido.Scenes == undefined then Kido.Scenes = {}
