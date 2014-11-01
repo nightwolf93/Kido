@@ -64,34 +64,42 @@ class SpriteSheet
     @animations[alias] = anim
 
   getAnimatedSprite: (alias, speed, pos) ->
-    anim = @animations[alias]
-    return new AnimatedSprite ani, @, speed, pos, @size
+    return new AnimatedSprite @animations, alias, @, speed, pos, @size
 
 class AnimatedSprite extends GraphicObject
-  constructor: (@animation, @spritesheet, @speed, pos, size) ->
+  constructor: (@animations, @currentAnim, @spritesheet, @speed, pos, size) ->
     @currentFrame = 0
     @currentGametime = 0
     @rotation = 0
     @scale = 0
     super pos, size
 
+  setAnim: (anim, reset=false) ->
+    if @currentAnim != anim
+      @currentAnim = anim
+      if reset then @currentFrame = 0
+
+  rotate: (deg) ->
+    @rotation += deg
+
   update: (gametime) ->
     @currentGametime++
-    if currentGametime % @speed == 0
+    if @currentGametime % @speed == 0
+      anim = @animations[@currentAnim]
       @currentFrame++
-      if @currentFrame == @animation.length then @currentFrame = 0
+      if @currentFrame == anim.length then @currentFrame = 0
 
   render: (g) ->
     g.canvas.ctx.save()
     g.canvas.ctx.translate(@pos.x, @pos.y)
     g.canvas.ctx.rotate(@rotation*Math.PI/180)
     g.canvas.ctx.translate(-@pos.x, -@pos.y)
-    g.canvas.ctx.drawImage(@spritesheet.asset.texture, @animation[@currentFrame].x, @animation[@currentFrame].y, @size.width, @size.height, @pos.x, @pos.y, @size.width, @size.height)
+    g.canvas.ctx.drawImage(@spritesheet.asset.texture, @animations[@currentAnim][@currentFrame].x, @animations[@currentAnim][@currentFrame].y, @size.width, @size.height, @pos.x - (@size.width / 2), @pos.y - (@size.height / 2), @size.width, @size.height)
     g.canvas.ctx.restore()
-
 
 if(window.Kido == undefined) then window.Kido = {}
 Kido.GraphicObject = GraphicObject
 Kido.Sprite = Sprite
 Kido.Container = Container
 Kido.SpriteSheet = SpriteSheet
+Kido.AnimatedSprite = AnimatedSprite

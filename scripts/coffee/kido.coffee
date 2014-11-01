@@ -32,6 +32,11 @@ class Canvas
     @ctx = @canvas.getContext '2d'
     @bgColor = '#ffffff'
 
+  setVolume: (volume) ->
+    for k, asset of Kido.AssetStorage.storage
+      if asset.type == 'sound'
+        asset.audio.volume = volume
+
 
 if(window.Kido == undefined)
   window.Kido = {

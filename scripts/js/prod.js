@@ -1,5 +1,5 @@
 (function() {
-  var Asset, AssetStorage;
+  var Asset, AssetStorage, Sound;
 
   AssetStorage = (function() {
     function AssetStorage() {
@@ -9,13 +9,18 @@
     }
 
     AssetStorage.prototype.loadManifest = function(manifest) {
-      var asset, definition, _i, _len, _results;
+      var asset, definition, sound, _i, _len, _results;
       this.count = manifest.length;
       _results = [];
       for (_i = 0, _len = manifest.length; _i < _len; _i++) {
         definition = manifest[_i];
-        asset = new Asset(definition.alias, definition.path, true);
-        _results.push(this.storage[definition.alias] = asset);
+        if (definition.path.indexOf('.mp3') === -1) {
+          asset = new Asset(definition.alias, definition.path, true);
+          _results.push(this.storage[definition.alias] = asset);
+        } else {
+          sound = new Sound(definition.alias, definition.path, true);
+          _results.push(this.storage[definition.alias] = sound);
+        }
       }
       return _results;
     };
@@ -35,6 +40,7 @@
       this.texture = void 0;
       this.size = new Kido.Size(0, 0);
       this.ready = false;
+      this.type = 'asset';
       if (preload) {
         this.load();
       }
@@ -60,6 +66,37 @@
     };
 
     return Asset;
+
+  })();
+
+  Sound = (function() {
+    function Sound(alias, path, preload) {
+      this.alias = alias;
+      this.path = path;
+      this.audio = void 0;
+      this.ready = false;
+      this.type = 'sound';
+      if (preload) {
+        this.load();
+      }
+    }
+
+    Sound.prototype.load = function() {
+      this.audio = new Audio(this.path);
+      this.ready = true;
+      Kido.AssetStorage.loaded++;
+      if (Kido.AssetStorage.loaded === Kido.AssetStorage.count) {
+        Kido.AssetStorage.loaded = 0;
+        Kido.AssetStorage.count = 0;
+        return Kido.EventEmitter.dispatch('assets.complete');
+      }
+    };
+
+    Sound.prototype.play = function() {
+      return this.audio.play();
+    };
+
+    return Sound;
 
   })();
 
@@ -152,6 +189,21 @@
       this.bgColor = '#ffffff';
     }
 
+    Canvas.prototype.setVolume = function(volume) {
+      var asset, k, _ref, _results;
+      _ref = Kido.AssetStorage.storage;
+      _results = [];
+      for (k in _ref) {
+        asset = _ref[k];
+        if (asset.type === 'sound') {
+          _results.push(asset.audio.volume = volume);
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
+    };
+
     return Canvas;
 
   })();
@@ -176,8 +228,7 @@
   var GameBootstrap;
 
   $(function() {
-    var bootstrap;
-    return bootstrap = new GameBootstrap();
+    return window.Bootstrap = new GameBootstrap();
   });
 
   GameBootstrap = (function() {
@@ -203,11 +254,9 @@
 
     SceneManager.prototype.setScene = function(scene) {
       if (this.currentScene !== void 0) {
-        console.log('Leave scene : ' + this.currentScene.name);
         this.currentScene.leave();
       }
       this.currentScene = scene;
-      console.log('Enter scene : ' + this.currentScene.name);
       return this.currentScene.enter();
     };
 
@@ -229,15 +278,15 @@
 
   Scene = (function() {
     function Scene(name, overlays) {
-      var _this;
       this.name = name;
       this.overlays = overlays;
       this.stage = new Kido.Container();
       this.sceneDiv = '#scene-' + this.name;
-      _this = this;
-      Kido.EventEmitter.when('assets.complete', function() {
-        return _this.initialized();
-      });
+      Kido.EventEmitter.when('assets.complete', (function(_this) {
+        return function() {
+          return _this.initialized();
+        };
+      })(this));
     }
 
     Scene.initialized = function() {};
@@ -409,9 +458,8 @@
       return this.animations[alias] = anim;
     };
 
-    SpriteSheet.prototype.getAnimatedSprite = function(alias) {
-      var anim;
-      return anim = this.animations[alias];
+    SpriteSheet.prototype.getAnimatedSprite = function(alias, speed, pos) {
+      return new AnimatedSprite(this.animations, alias, this, speed, pos, this.size);
     };
 
     return SpriteSheet;
@@ -421,11 +469,54 @@
   AnimatedSprite = (function(_super) {
     __extends(AnimatedSprite, _super);
 
-    function AnimatedSprite(animation, spritesheet, pos, size) {
+    function AnimatedSprite(animations, currentAnim, spritesheet, speed, pos, size) {
+      this.animations = animations;
+      this.currentAnim = currentAnim;
+      this.spritesheet = spritesheet;
+      this.speed = speed;
+      this.currentFrame = 0;
+      this.currentGametime = 0;
+      this.rotation = 0;
+      this.scale = 0;
       AnimatedSprite.__super__.constructor.call(this, pos, size);
     }
 
-    AnimatedSprite.prototype.update = function(gametime) {};
+    AnimatedSprite.prototype.setAnim = function(anim, reset) {
+      if (reset == null) {
+        reset = false;
+      }
+      if (this.currentAnim !== anim) {
+        this.currentAnim = anim;
+        if (reset) {
+          return this.currentFrame = 0;
+        }
+      }
+    };
+
+    AnimatedSprite.prototype.rotate = function(deg) {
+      return this.rotation += deg;
+    };
+
+    AnimatedSprite.prototype.update = function(gametime) {
+      var anim;
+      this.currentGametime++;
+      if (this.currentGametime % this.speed === 0) {
+        anim = this.animations[this.currentAnim];
+        this.currentFrame++;
+        if (this.currentFrame === anim.length) {
+          return this.currentFrame = 0;
+        }
+      }
+    };
+
+    AnimatedSprite.prototype.render = function(g) {
+      g.canvas.ctx.save();
+      g.canvas.ctx.translate(this.pos.x, this.pos.y);
+      g.canvas.ctx.rotate(this.rotation * Math.PI / 180);
+      g.canvas.ctx.translate(-this.pos.x, -this.pos.y);
+      g.canvas.ctx.drawImage(this.spritesheet.asset.texture, this.animations[this.currentAnim][this.currentFrame].x, this.animations[this.currentAnim][this.currentFrame].y, this.size.width, this.size.height, this.pos.x - (this.size.width / 2), this.pos.y - (this.size.height / 2), this.size.width, this.size.height);
+      return g.canvas.ctx.restore();
+    };
 
     return AnimatedSprite;
 
@@ -442,6 +533,8 @@
   Kido.Container = Container;
 
   Kido.SpriteSheet = SpriteSheet;
+
+  Kido.AnimatedSprite = AnimatedSprite;
 
 }).call(this);
 
@@ -498,18 +591,34 @@
         }, {
           alias: 'perso1',
           path: 'assets/spritesheet1.png'
+        }, {
+          alias: 'sound1',
+          path: 'assets/1.mp3'
         }
       ]);
       return InGame.__super__.enter.apply(this, arguments);
     };
 
     InGame.prototype.initialized = function() {
-      var spritesheet;
-      spritesheet = Kido.SpriteSheet.fromStorage('perso1', new Kido.Size(50, 50), 6, 13);
-      return console.log(spritesheet);
+      this.spritesheet = Kido.SpriteSheet.fromStorage('perso1', new Kido.Size(165, 292), 6, 13);
+      this.spritesheet.buildAnimation('run', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+      this.spritesheet.buildAnimation('jump', [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]);
+      this.guy = this.spritesheet.getAnimatedSprite('run', 3, new Kido.Vector2f(50, 250));
+      this.stage.addChild(this.guy);
+      this.music = Kido.AssetStorage.get('sound1');
+      return Bootstrap.engine.canvas.setVolume(0.5);
     };
 
     InGame.prototype.update = function(gametime) {
+      this.guy.pos.x += 2;
+      this.guy.rotate(1);
+      if (this.guy.pos.x === 300) {
+        this.guy.setAnim('jump', true);
+      }
+      if (this.guy.pos.x > 600) {
+        this.guy.pos.x = 0;
+        this.guy.setAnim('run', true);
+      }
       return InGame.__super__.update.call(this, gametime);
     };
 

@@ -4,10 +4,8 @@ class SceneManager
 
   setScene: (scene) ->
     if @currentScene != undefined
-      console.log 'Leave scene : ' + @currentScene.name
       @currentScene.leave()
     @currentScene = scene
-    console.log 'Enter scene : ' + @currentScene.name
     @currentScene.enter()
 
   update: (gametime) ->
@@ -22,9 +20,8 @@ class Scene
   constructor: (@name, @overlays) ->
     @stage = new Kido.Container()
     @sceneDiv = '#scene-' + @name
-    _this = @
-    Kido.EventEmitter.when 'assets.complete', ->
-      _this.initialized()
+    Kido.EventEmitter.when 'assets.complete', =>
+      @initialized()
 
   @initialized: ->
 

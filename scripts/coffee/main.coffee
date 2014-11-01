@@ -1,5 +1,5 @@
 $ ->
-  bootstrap = new GameBootstrap()
+  window.Bootstrap = new GameBootstrap()
 
 class GameBootstrap
   constructor: ->
